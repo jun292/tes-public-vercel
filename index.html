@@ -681,7 +681,7 @@
                 <p>© 2023 MultiDownloader. All rights reserved.</p>
             </div>
         </div>
-    </header>
+    </footer>
 
     <div class="modal" id="loginModal">
         <div class="modal-content">
@@ -951,35 +951,39 @@
         }
 
         function displayDownloadResults(data, originalUrl) {
+            console.log("API Response Data:", data); // Log respons API untuk membantu debugging
             downloadOptionsContainer.innerHTML = '<h4>Pilihan Download</h4>'; // Reset download options
             noDownloadOptionsText.style.display = 'none';
 
             let hasOptions = false;
 
             // Populate thumbnail and title
-            resultThumbnail.src = data.thumbnail || 'https://via.placeholder.com/400x300';
-            resultTitle.textContent = data.title || 'Hasil Download';
+            resultThumbnail.src = data.thumbnail || data.result?.thumbnail || 'https://via.placeholder.com/400x300';
+            resultTitle.textContent = data.title || data.result?.title || 'Hasil Download';
 
             // Example structure based on common API responses for different platforms
             if (currentPlatform === 'tiktok' || currentPlatform === 'snackvideo') {
-                if (data.video && data.video.length > 0) {
-                    data.video.forEach((video, index) => {
+                const videos = data.video || data.result?.video;
+                if (videos && videos.length > 0) {
+                    videos.forEach((video, index) => {
                         if (video.url) {
                             addDownloadOption(`Video ${video.quality || 'Default'} (${video.format || 'MP4'})`, video.url);
                             hasOptions = true;
                         }
                     });
-                } else if (data.url) { // Fallback for simple direct video URLs
-                    addDownloadOption('Video (MP4)', data.url);
+                } else if (data.url || data.result?.url) { // Fallback for simple direct video URLs
+                    addDownloadOption('Video (MP4)', data.url || data.result?.url);
                     hasOptions = true;
                 }
-                if (data.audio && data.audio.url) {
-                     addDownloadOption('Audio (MP3)', data.audio.url);
+                const audio = data.audio || data.result?.audio;
+                if (audio && audio.url) {
+                     addDownloadOption('Audio (MP3)', audio.url);
                      hasOptions = true;
                 }
             } else if (currentPlatform === 'youtube') {
-                if (data.mp4 && data.mp4.length > 0) {
-                    data.mp4.forEach((mp4Data) => {
+                const mp4s = data.mp4 || data.result?.mp4;
+                if (mp4s && mp4s.length > 0) {
+                    mp4s.forEach((mp4Data) => {
                         if (mp4Data.url) {
                             addDownloadOption(`Video ${mp4Data.quality || 'MP4'}`, mp4Data.url);
                             hasOptions = true;
@@ -990,8 +994,9 @@
                 fetch(youtubeApiOptions.ytmp3 + encodeURIComponent(originalUrl))
                     .then(res => res.json())
                     .then(mp3Data => {
-                        if (mp3Data.mp3 && mp3Data.mp3.url) {
-                            addDownloadOption('Audio (MP3)', mp3Data.mp3.url);
+                        const audioUrl = mp3Data.mp3?.url || mp3Data.result?.mp3?.url;
+                        if (audioUrl) {
+                            addDownloadOption('Audio (MP3)', audioUrl);
                             hasOptions = true;
                         }
                     })
@@ -1005,25 +1010,31 @@
                     });
                 return; // Exit early as the MP3 fetch will handle showing the container
             } else if (currentPlatform === 'instagram' || currentPlatform === 'facebook' || currentPlatform === 'capcut') {
-                if (data.url) {
-                    addDownloadOption('Video/Gambar', data.url);
+                const url = data.url || data.result?.url;
+                if (url) {
+                    addDownloadOption('Video/Gambar', url);
                     hasOptions = true;
-                } else if (data.urls && data.urls.length > 0) {
-                    data.urls.forEach((item, index) => {
-                        if (item.url) {
-                            addDownloadOption(`Media ${index + 1} (${item.type || 'Unknown'})`, item.url);
-                            hasOptions = true;
-                        }
-                    });
+                } else {
+                    const urls = data.urls || data.result?.urls;
+                    if (urls && urls.length > 0) {
+                        urls.forEach((item, index) => {
+                            if (item.url) {
+                                addDownloadOption(`Media ${index + 1} (${item.type || 'Unknown'})`, item.url);
+                                hasOptions = true;
+                            }
+                        });
+                    }
                 }
             } else if (currentPlatform === 'spotify') {
-                if (data.mp3_download_url) {
-                    addDownloadOption(`Audio (${data.quality || 'MP3'})`, data.mp3_download_url);
+                const audioUrl = data.mp3_download_url || data.result?.mp3_download_url;
+                if (audioUrl) {
+                    addDownloadOption(`Audio (${data.quality || 'MP3'})`, audioUrl);
                     hasOptions = true;
                 }
             } else if (currentPlatform === 'mediafire') {
-                if (data.url) {
-                    addDownloadOption('File Download', data.url);
+                const url = data.url || data.result?.url;
+                if (url) {
+                    addDownloadOption('File Download', url);
                     hasOptions = true;
                 }
             }
@@ -1074,28 +1085,35 @@
                     console.error('Error recording download: ', error);
                 });
         }
+        
+        async function updateDashboardStats() {
+            try {
+                // Query untuk mendapatkan total unduhan
+                const totalDownloadsQuery = await db.collection('downloads').count().get();
+                document.getElementById('totalDownloads').textContent = totalDownloadsQuery.data().count;
+                
+                // Query untuk unduhan sukses dan error
+                const successfulDownloadsQuery = db.collection('downloads').where('status', '==', 'success');
+                const failedDownloadsQuery = db.collection('downloads').where('status', '==', 'failed');
 
-        function updateDashboardStats() {
-            // Get total downloads
-            db.collection('downloads').get().then((querySnapshot) => {
-                const totalDownloads = querySnapshot.size;
-                document.getElementById('totalDownloads').textContent = totalDownloads;
-                
-                // Count successful and failed downloads
-                let successful = 0;
-                let failed = 0;
+                const [successfulSnapshot, failedSnapshot] = await Promise.all([
+                    successfulDownloadsQuery.count().get(),
+                    failedDownloadsQuery.count().get()
+                ]);
+
+                document.getElementById('successfulDownloads').textContent = successfulSnapshot.data().count;
+                document.getElementById('failedDownloads').textContent = failedSnapshot.data().count;
+
+                // Query untuk menghitung pengguna unik (berdasarkan userAgent)
+                const allDownloadsSnapshot = await db.collection('downloads').get(); // Ini masih memuat semua, untuk menghitung unik. Pertimbangkan cara yang lebih baik
+                const uniqueUserAgents = new Set();
                 const platformCounts = {};
-                
-                querySnapshot.forEach((doc) => {
+                allDownloadsSnapshot.forEach(doc => {
                     const data = doc.data();
-                    if (data.status === 'success') {
-                        successful++;
-                    } else {
-                        failed++;
-                    }
+                    if (data.userAgent) uniqueUserAgents.add(data.userAgent);
                     
-                    // Count by platform
-                    if (data.platform) { // Ensure platform exists
+                    // Hitung per platform
+                    if (data.platform) {
                         if (platformCounts[data.platform]) {
                             platformCounts[data.platform]++;
                         } else {
@@ -1103,59 +1121,45 @@
                         }
                     }
                 });
-                
-                document.getElementById('successfulDownloads').textContent = successful;
-                document.getElementById('failedDownloads').textContent = failed;
-                
-                // Update platform chart (simplified)
-                updatePlatformChart(platformCounts);
-            });
-            
-            // Get total users (assuming each successful download implies a user, or you have a separate users collection)
-            // For now, let's just count unique users from downloads based on userAgent (very basic)
-            db.collection('downloads').get().then((querySnapshot) => {
-                const uniqueUserAgents = new Set();
-                querySnapshot.forEach(doc => {
-                    if (doc.data().userAgent) {
-                        uniqueUserAgents.add(doc.data().userAgent);
-                    }
-                });
                 document.getElementById('totalUsers').textContent = uniqueUserAgents.size;
-            });
+                updatePlatformChart(platformCounts);
+                
+                // Query untuk download terbaru
+                const recentDownloadsSnapshot = await db.collection('downloads')
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
 
-            // Get recent downloads
-            db.collection('downloads')
-                .orderBy('timestamp', 'desc')
-                .limit(10)
-                .get()
-                .then((querySnapshot) => {
-                    const tableBody = document.getElementById('recentDownloadsTable');
-                    tableBody.innerHTML = '';
+                const tableBody = document.getElementById('recentDownloadsTable');
+                tableBody.innerHTML = '';
+                
+                recentDownloadsSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const row = document.createElement('tr');
                     
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const row = document.createElement('tr');
-                        
-                        // Format date
-                        const date = data.timestamp ? data.timestamp.toDate() : new Date();
-                        const formattedDate = date.toLocaleDateString('id-ID', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                        
-                        row.innerHTML = `
-                            <td>${data.platform || 'N/A'}</td>
-                            <td title="${data.url}">${data.url ? data.url.substring(0, 50) + (data.url.length > 50 ? '...' : '') : 'N/A'}</td>
-                            <td><span class="status ${data.status}">${data.status || 'unknown'}</span></td>
-                            <td>${formattedDate}</td>
-                        `;
-                        
-                        tableBody.appendChild(row);
+                    // Format date
+                    const date = data.timestamp ? data.timestamp.toDate() : new Date();
+                    const formattedDate = date.toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                     });
+                    
+                    row.innerHTML = `
+                        <td>${data.platform || 'N/A'}</td>
+                        <td title="${data.url}">${data.url ? data.url.substring(0, 50) + (data.url.length > 50 ? '...' : '') : 'N/A'}</td>
+                        <td><span class="status ${data.status}">${data.status || 'unknown'}</span></td>
+                        <td>${formattedDate}</td>
+                    `;
+                    
+                    tableBody.appendChild(row);
                 });
+            } catch (error) {
+                console.error("Error updating dashboard stats:", error);
+                alert("Gagal memuat dashboard: " + error.message);
+            }
         }
 
         let platformChartInstance = null; // To hold the Chart.js instance
