@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi Platform Downloader</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --info: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --bg-color: #f5f7fb;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--card-shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo i {
+            font-size: 2rem;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        nav a:hover, nav a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background-color: white;
+            color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: #f0f0f0;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main Content */
+        main {
+            padding: 2rem 0;
+            min-height: calc(100vh - 200px);
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--gray);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* Downloader Section */
+        .downloader-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .platform-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 2rem;
+        }
+
+        .platform {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: var(--light);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .platform:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .platform.active {
+            border-color: var(--primary);
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .platform i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .platform span {
+            font-weight: 500;
+        }
+
+        .url-input-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .url-input-container h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .url-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .url-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .url-input button {
+            padding: 12px 25px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .url-input button:hover {
+            background-color: var(--secondary);
+        }
+
+        .result-container {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: var(--light);
+            border-radius: 8px;
+        }
+
+        .result-container.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .result-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .thumbnail {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .download-options h4 {
+            margin-bottom: 1rem;
+        }
+
+        .download-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .download-option button {
+            padding: 8px 15px;
+            background-color: var(--success);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .download-option button:hover {
+            background-color: #3aa8d0;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--success);
+        }
+
+        /* Admin Dashboard */
+        .admin-dashboard {
+            display: none;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .stat-card i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            color: var(--gray);
+        }
+
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .recent-downloads {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: var(--light);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Login Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .modal-footer {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .platform-selector {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+            
+            .result-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .url-input {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-download"></i>
+                    <span>MultiDownloader</span>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#" class="active" data-page="home">Home</a></li>
+                        <li><a href="#" data-page="admin">Admin Dashboard</a></li>
+                    </ul>
+                </nav>
+                <div class="auth-buttons">
+                    <button class="btn btn-outline" id="loginBtn">Login</button>
+                    <button class="btn btn-primary" id="logoutBtn" style="display: none;">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div id="home-page">
+                <div class="hero">
+                    <h1>Download Video & Audio dengan Mudah</h1>
+                    <p>Download konten dari berbagai platform populer seperti TikTok, Instagram, YouTube, Facebook, dan banyak lagi. Cepat, aman, dan gratis!</p>
+                </div>
+
+                <div class="downloader-section">
+                    <div class="platform-selector">
+                        <div class="platform active" data-platform="tiktok">
+                            <i class="fab fa-tiktok"></i>
+                            <span>TikTok</span>
+                        </div>
+                        <div class="platform" data-platform="instagram">
+                            <i class="fab fa-instagram"></i>
+                            <span>Instagram</span>
+                        </div>
+                        <div class="platform" data-platform="youtube">
+                            <i class="fab fa-youtube"></i>
+                            <span>YouTube</span>
+                        </div>
+                        <div class="platform" data-platform="facebook">
+                            <i class="fab fa-facebook"></i>
+                            <span>Facebook</span>
+                        </div>
+                        <div class="platform" data-platform="spotify">
+                            <i class="fab fa-spotify"></i>
+                            <span>Spotify</span>
+                        </div>
+                        <div class="platform" data-platform="capcut">
+                            <i class="fas fa-scissors"></i>
+                            <span>CapCut</span>
+                        </div>
+                        <div class="platform" data-platform="mediafire">
+                            <i class="fas fa-cloud-download-alt"></i>
+                            <span>Mediafire</span>
+                        </div>
+                        <div class="platform" data-platform="snackvideo">
+                            <i class="fas fa-video"></i>
+                            <span>Snack Video</span>
+                        </div>
+                    </div>
+
+                    <div class="url-input-container">
+                        <h3><i class="fas fa-link"></i> Masukkan URL Video</h3>
+                        <div class="url-input">
+                            <input type="text" id="videoUrl" placeholder="Contoh: https://www.tiktok.com/@username/video/123456789" />
+                            <button id="downloadBtn">Download</button>
+                        </div>
+                    </div>
+
+                    <div class="result-container" id="resultContainer">
+                        <div class="result-header">
+                            <h3 id="resultTitle">Hasil Download</h3>
+                            <button id="closeResult"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="result-content">
+                            <div class="thumbnail">
+                                <img id="resultThumbnail" src="https://via.placeholder.com/400x300" alt="Thumbnail">
+                            </div>
+                            <div class="download-options" id="downloadOptions">
+                                <h4>Pilihan Download</h4>
+                                <p id="noDownloadOptions" style="display: none;">Tidak ada pilihan download yang tersedia.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="errorMessage" style="color: var(--danger); text-align: center; margin-top: 1rem; display: none;"></p>
+                </div>
+            </div>
+
+            <div id="admin-dashboard" class="admin-dashboard">
+                <div class="dashboard-header">
+                    <h1><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+                    <button class="btn btn-primary" id="refreshStats"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <i class="fas fa-download"></i>
+                        <h3 id="totalDownloads">0</h3>
+                        <p>Total Download</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-check-circle"></i>
+                        <h3 id="successfulDownloads">0</h3>
+                        <p>Sukses</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h3 id="failedDownloads">0</h3>
+                        <p>Error</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-users"></i>
+                        <h3 id="totalUsers">0</h3>
+                        <p>Total Pengguna</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Statistik Download per Platform</h3>
+                    <canvas id="platformChart" width="400" height="200"></canvas>
+                </div>
+
+                <div class="recent-downloads">
+                    <h3>Download Terbaru</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Platform</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                                <th>Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentDownloadsTable">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="logo">
+                    <i class="fas fa-download"></i>
+                    <span>MultiDownloader</span>
+                </div>
+                <p>Download konten dari berbagai platform dengan mudah dan cepat.</p>
+                <div class="footer-links">
+                    <a href="#">Tentang Kami</a>
+                    <a href="#">Kebijakan Privasi</a>
+                    <a href="#">Syarat & Ketentuan</a>
+                    <a href="#">Kontak</a>
+                </div>
+                <p>© 2023 MultiDownloader. All rights reserved.</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Login Admin</h2>
+                <button class="close-modal">×</button>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline close-modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB6PkpK79PGUn8ceE9wmFby1xh_pSqSjG4",
+            authDomain: "tokopanelljunnn.firebaseapp.com",
+            databaseURL: "https://tokopanelljunnn-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tokopanelljunnn",
+            storageBucket: "tokopanelljunnn.firebasestorage.app",
+            messagingSenderId: "1045025147669",
+            appId: "1:1045025147669:web:d637595c4beb4e43aff71c"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // DOM Elements
+        const homePage = document.getElementById('home-page');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginModal = document.getElementById('loginModal');
+        const loginForm = document.getElementById('loginForm');
+        const closeModalButtons = document.querySelectorAll('.close-modal');
+        const platformElements = document.querySelectorAll('.platform');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const videoUrlInput = document.getElementById('videoUrl');
+        const resultContainer = document.getElementById('resultContainer');
+        const closeResultBtn = document.getElementById('closeResult');
+        const refreshStatsBtn = document.getElementById('refreshStats');
+        const resultThumbnail = document.getElementById('resultThumbnail');
+        const resultTitle = document.getElementById('resultTitle');
+        const downloadOptionsContainer = document.getElementById('downloadOptions');
+        const noDownloadOptionsText = document.getElementById('noDownloadOptions');
+        const errorMessageDisplay = document.getElementById('errorMessage');
+
+        // Platform APIs
+        const platformAPIs = {
+            tiktok: "https://yuichi-api-docs.vercel.app/download/tiktok?url=",
+            instagram: "https://yuichi-api-docs.vercel.app/download/instagram?url=",
+            youtube: "https://yuichi-api-docs.vercel.app/download/ytmp4?url=", // Default to ytmp4 for YouTube
+            facebook: "https://yuichi-api-docs.vercel.app/download/facebook?url=",
+            spotify: "https://yuichi-api-docs.vercel.app/download/spotify?url=",
+            capcut: "https://yuichi-api-docs.vercel.app/download/capcut?url=",
+            mediafire: "https://yuichi-api-docs.vercel.app/download/mediafire?url=",
+            snackvideo: "https://yuichi-api-docs.vercel.app/download/snackvideo?url=",
+        };
+
+        const youtubeApiOptions = {
+            ytmp4: "https://yuichi-api-docs.vercel.app/download/ytmp4?url=",
+            ytmp3: "https://yuichi-api-docs.vercel.app/download/ytmp3?url=",
+        };
+
+        // Current selected platform
+        let currentPlatform = 'tiktok';
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navigation
+            document.querySelectorAll('nav a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelectorAll('nav a').forEach(navLink => navLink.classList.remove('active'));
+                    this.classList.add('active');
+                    const page = this.getAttribute('data-page');
+                    
+                    if (page === 'admin') {
+                        if (auth.currentUser) {
+                            showAdminDashboard();
+                        } else {
+                            loginModal.classList.add('active');
+                        }
+                    } else {
+                        showHomePage();
+                    }
+                });
+            });
+
+            // Platform selection
+            platformElements.forEach(platform => {
+                platform.addEventListener('click', function() {
+                    platformElements.forEach(p => p.classList.remove('active'));
+                    this.classList.add('active');
+                    currentPlatform = this.getAttribute('data-platform');
+                    
+                    // Update placeholder based on platform
+                    updateUrlPlaceholder();
+                    // Clear previous results and errors
+                    resultContainer.classList.remove('active');
+                    errorMessageDisplay.style.display = 'none';
+                });
+            });
+
+            // Download button
+            downloadBtn.addEventListener('click', processDownload);
+
+            // Close result
+            closeResultBtn.addEventListener('click', function() {
+                resultContainer.classList.remove('active');
+            });
+
+            // Login modal
+            loginBtn.addEventListener('click', function() {
+                loginModal.classList.add('active');
+            });
+
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    loginModal.classList.remove('active');
+                });
+            });
+
+            // Login form
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        loginModal.classList.remove('active');
+                        showAdminDashboard();
+                    })
+                    .catch((error) => {
+                        alert('Login gagal: ' + error.message);
+                    });
+            });
+
+            // Logout
+            logoutBtn.addEventListener('click', function() {
+                auth.signOut().then(() => {
+                    showHomePage();
+                });
+            });
+
+            // Refresh stats
+            refreshStatsBtn.addEventListener('click', updateDashboardStats);
+
+            // Check auth state
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    loginBtn.style.display = 'none';
+                    logoutBtn.style.display = 'block';
+                } else {
+                    loginBtn.style.display = 'block';
+                    logoutBtn.style.display = 'none';
+                    showHomePage();
+                }
+            });
+
+            // Initialize dashboard if user is logged in
+            if (auth.currentUser) {
+                showAdminDashboard();
+            }
+        });
+
+        // Functions
+        function showHomePage() {
+            homePage.style.display = 'block';
+            adminDashboard.style.display = 'none';
+            document.querySelector('nav a[data-page="home"]').classList.add('active');
+            document.querySelector('nav a[data-page="admin"]').classList.remove('active');
+        }
+
+        function showAdminDashboard() {
+            homePage.style.display = 'none';
+            adminDashboard.style.display = 'block';
+            document.querySelector('nav a[data-page="home"]').classList.remove('active');
+            document.querySelector('nav a[data-page="admin"]').classList.add('active');
+            updateDashboardStats();
+        }
+
+        function updateUrlPlaceholder() {
+            const placeholders = {
+                tiktok: "https://www.tiktok.com/@username/video/123456789",
+                instagram: "https://www.instagram.com/p/ABC123/",
+                youtube: "https://www.youtube.com/watch?v=ABC123",
+                facebook: "https://www.facebook.com/watch/?v=123456789",
+                spotify: "https://open.spotify.com/track/YOUR_TRACK_ID",
+                capcut: "https://www.capcut.com/template/123456789",
+                mediafire: "https://www.mediafire.com/file/abc123/",
+                snackvideo: "https://www.snackvideo.com/video/123456789"
+            };
+            
+            videoUrlInput.placeholder = `Contoh: ${placeholders[currentPlatform] || "https://example.com/video/123"}`;
+        }
+
+        async function processDownload() {
+            const url = videoUrlInput.value.trim();
+            errorMessageDisplay.style.display = 'none'; // Hide previous errors
+            resultContainer.classList.remove('active'); // Hide previous results
+
+            if (!url) {
+                errorMessageDisplay.textContent = 'Masukkan URL video terlebih dahulu.';
+                errorMessageDisplay.style.display = 'block';
+                return;
+            }
+            
+            // Show loading state
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            downloadBtn.disabled = true;
+
+            let apiUrl;
+            if (currentPlatform === 'youtube') {
+                // For YouTube, provide both MP4 and MP3 options if the API supports it.
+                // We will fetch MP4 first, then MP3 if needed.
+                apiUrl = youtubeApiOptions.ytmp4 + encodeURIComponent(url);
+            } else {
+                if (!platformAPIs[currentPlatform]) {
+                    errorMessageDisplay.textContent = 'Platform tidak didukung.';
+                    errorMessageDisplay.style.display = 'block';
+                    downloadBtn.innerHTML = 'Download';
+                    downloadBtn.disabled = false;
+                    recordDownloadAttempt(currentPlatform, url, 'failed', 'Platform tidak didukung');
+                    return;
+                }
+                apiUrl = platformAPIs[currentPlatform] + encodeURIComponent(url);
+            }
+            
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (!response.ok || data.status === false) {
+                    throw new Error(data.message || 'Gagal mengambil informasi download. Periksa URL.');
+                }
+
+                displayDownloadResults(data, url);
+                recordDownloadAttempt(currentPlatform, url, 'success');
+
+            } catch (error) {
+                console.error('Error during download process:', error);
+                errorMessageDisplay.textContent = 'Error: ' + error.message;
+                errorMessageDisplay.style.display = 'block';
+                resultContainer.classList.remove('active'); // Ensure result container is hidden on error
+                recordDownloadAttempt(currentPlatform, url, 'failed', error.message);
+            } finally {
+                downloadBtn.innerHTML = 'Download';
+                downloadBtn.disabled = false;
+                resultContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function displayDownloadResults(data, originalUrl) {
+            downloadOptionsContainer.innerHTML = '<h4>Pilihan Download</h4>'; // Reset download options
+            noDownloadOptionsText.style.display = 'none';
+
+            let hasOptions = false;
+
+            // Populate thumbnail and title
+            resultThumbnail.src = data.thumbnail || 'https://via.placeholder.com/400x300';
+            resultTitle.textContent = data.title || 'Hasil Download';
+
+            // Example structure based on common API responses for different platforms
+            if (currentPlatform === 'tiktok' || currentPlatform === 'snackvideo') {
+                if (data.video && data.video.length > 0) {
+                    data.video.forEach((video, index) => {
+                        if (video.url) {
+                            addDownloadOption(`Video ${video.quality || 'Default'} (${video.format || 'MP4'})`, video.url);
+                            hasOptions = true;
+                        }
+                    });
+                } else if (data.url) { // Fallback for simple direct video URLs
+                    addDownloadOption('Video (MP4)', data.url);
+                    hasOptions = true;
+                }
+                if (data.audio && data.audio.url) {
+                     addDownloadOption('Audio (MP3)', data.audio.url);
+                     hasOptions = true;
+                }
+            } else if (currentPlatform === 'youtube') {
+                if (data.mp4 && data.mp4.length > 0) {
+                    data.mp4.forEach((mp4Data) => {
+                        if (mp4Data.url) {
+                            addDownloadOption(`Video ${mp4Data.quality || 'MP4'}`, mp4Data.url);
+                            hasOptions = true;
+                        }
+                    });
+                }
+                // Try fetching MP3 separately or check if the same API provides it
+                fetch(youtubeApiOptions.ytmp3 + encodeURIComponent(originalUrl))
+                    .then(res => res.json())
+                    .then(mp3Data => {
+                        if (mp3Data.mp3 && mp3Data.mp3.url) {
+                            addDownloadOption('Audio (MP3)', mp3Data.mp3.url);
+                            hasOptions = true;
+                        }
+                    })
+                    .catch(e => console.warn("Could not fetch YouTube MP3 options:", e))
+                    .finally(() => {
+                        // After trying both, show result container
+                        if (!hasOptions) {
+                            noDownloadOptionsText.style.display = 'block';
+                        }
+                        resultContainer.classList.add('active');
+                    });
+                return; // Exit early as the MP3 fetch will handle showing the container
+            } else if (currentPlatform === 'instagram' || currentPlatform === 'facebook' || currentPlatform === 'capcut') {
+                if (data.url) {
+                    addDownloadOption('Video/Gambar', data.url);
+                    hasOptions = true;
+                } else if (data.urls && data.urls.length > 0) {
+                    data.urls.forEach((item, index) => {
+                        if (item.url) {
+                            addDownloadOption(`Media ${index + 1} (${item.type || 'Unknown'})`, item.url);
+                            hasOptions = true;
+                        }
+                    });
+                }
+            } else if (currentPlatform === 'spotify') {
+                if (data.mp3_download_url) {
+                    addDownloadOption(`Audio (${data.quality || 'MP3'})`, data.mp3_download_url);
+                    hasOptions = true;
+                }
+            } else if (currentPlatform === 'mediafire') {
+                if (data.url) {
+                    addDownloadOption('File Download', data.url);
+                    hasOptions = true;
+                }
+            }
+
+            if (!hasOptions) {
+                noDownloadOptionsText.style.display = 'block';
+            }
+            resultContainer.classList.add('active'); // Show result container once all options are processed
+        }
+
+        function addDownloadOption(label, url) {
+            const optionDiv = document.createElement('div');
+            optionDiv.classList.add('download-option');
+            optionDiv.innerHTML = `
+                <span>${label}</span>
+                <button onclick="startDownload('${url}', '${label}')"><i class="fas fa-download"></i> Download</button>
+            `;
+            downloadOptionsContainer.appendChild(optionDiv);
+        }
+
+        function startDownload(url, filename) {
+            // Initiate file download
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename.replace(/[^a-z0-9]/gi, '_').toLowerCase() + (url.includes('.mp3') ? '.mp3' : '.mp4')); // Simple filename suggestion
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            alert(`Memulai download: ${filename}`);
+        }
+
+
+        function recordDownloadAttempt(platform, url, status, message = '') {
+            const downloadData = {
+                platform: platform,
+                url: url,
+                status: status,
+                message: message,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userAgent: navigator.userAgent
+            };
+            
+            db.collection('downloads').add(downloadData)
+                .then(() => {
+                    console.log('Download recorded successfully');
+                })
+                .catch((error) => {
+                    console.error('Error recording download: ', error);
+                });
+        }
+
+        function updateDashboardStats() {
+            // Get total downloads
+            db.collection('downloads').get().then((querySnapshot) => {
+                const totalDownloads = querySnapshot.size;
+                document.getElementById('totalDownloads').textContent = totalDownloads;
+                
+                // Count successful and failed downloads
+                let successful = 0;
+                let failed = 0;
+                const platformCounts = {};
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.status === 'success') {
+                        successful++;
+                    } else {
+                        failed++;
+                    }
+                    
+                    // Count by platform
+                    if (data.platform) { // Ensure platform exists
+                        if (platformCounts[data.platform]) {
+                            platformCounts[data.platform]++;
+                        } else {
+                            platformCounts[data.platform] = 1;
+                        }
+                    }
+                });
+                
+                document.getElementById('successfulDownloads').textContent = successful;
+                document.getElementById('failedDownloads').textContent = failed;
+                
+                // Update platform chart (simplified)
+                updatePlatformChart(platformCounts);
+            });
+            
+            // Get total users (assuming each successful download implies a user, or you have a separate users collection)
+            // For now, let's just count unique users from downloads based on userAgent (very basic)
+            db.collection('downloads').get().then((querySnapshot) => {
+                const uniqueUserAgents = new Set();
+                querySnapshot.forEach(doc => {
+                    if (doc.data().userAgent) {
+                        uniqueUserAgents.add(doc.data().userAgent);
+                    }
+                });
+                document.getElementById('totalUsers').textContent = uniqueUserAgents.size;
+            });
+
+            // Get recent downloads
+            db.collection('downloads')
+                .orderBy('timestamp', 'desc')
+                .limit(10)
+                .get()
+                .then((querySnapshot) => {
+                    const tableBody = document.getElementById('recentDownloadsTable');
+                    tableBody.innerHTML = '';
+                    
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const row = document.createElement('tr');
+                        
+                        // Format date
+                        const date = data.timestamp ? data.timestamp.toDate() : new Date();
+                        const formattedDate = date.toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        
+                        row.innerHTML = `
+                            <td>${data.platform || 'N/A'}</td>
+                            <td title="${data.url}">${data.url ? data.url.substring(0, 50) + (data.url.length > 50 ? '...' : '') : 'N/A'}</td>
+                            <td><span class="status ${data.status}">${data.status || 'unknown'}</span></td>
+                            <td>${formattedDate}</td>
+                        `;
+                        
+                        tableBody.appendChild(row);
+                    });
+                });
+        }
+
+        let platformChartInstance = null; // To hold the Chart.js instance
+
+        function updatePlatformChart(platformCounts) {
+            const ctx = document.getElementById('platformChart').getContext('2d');
+            
+            // Destroy existing chart instance if it exists
+            if (platformChartInstance) {
+                platformChartInstance.destroy();
+            }
+            
+            const platforms = Object.keys(platformCounts);
+            const counts = Object.values(platformCounts);
+            
+            // Create a simple bar chart
+            platformChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: platforms,
+                    datasets: [{
+                        label: 'Jumlah Download',
+                        data: counts,
+                        backgroundColor: [
+                            'rgba(67, 97, 238, 0.7)', // primary
+                            'rgba(76, 201, 240, 0.7)', // success
+                            'rgba(247, 37, 133, 0.7)', // danger
+                            'rgba(248, 150, 30, 0.7)', // warning
+                            'rgba(72, 149, 239, 0.7)', // info
+                            'rgba(63, 55, 201, 0.7)', // secondary
+                            'rgba(108, 117, 125, 0.7)', // gray
+                            'rgba(33, 37, 41, 0.7)' // dark
+                        ],
+                        borderColor: [
+                            'rgba(67, 97, 238, 1)',
+                            'rgba(76, 201, 240, 1)',
+                            'rgba(247, 37, 133, 1)',
+                            'rgba(248, 150, 30, 1)',
+                            'rgba(72, 149, 239, 1)',
+                            'rgba(63, 55, 201, 1)',
+                            'rgba(108, 117, 125, 1)',
+                            'rgba(33, 37, 41, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0 // Ensure integer ticks for count
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Hide legend if only one dataset
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        updateUrlPlaceholder();
+    </script>
+</body>
+</html>
